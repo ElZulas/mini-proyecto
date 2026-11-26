@@ -20,8 +20,12 @@ export function useCanalTiempoReal(activo: boolean) {
     if (!activo) {
       return;
     }
-    // En Vercel no hay server.mjs persistente; el vivo del panel es onSnapshot.
-    if (process.env.NEXT_PUBLIC_SOCKET_IO === "0") {
+    const forzarOff = process.env.NEXT_PUBLIC_SOCKET_IO === "0";
+    const enLocal =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    // Fuera de local (p. ej. Vercel) no hay server.mjs: no insistir en Socket.io.
+    if (forzarOff || !enLocal) {
       return;
     }
     setEstado("conectando");

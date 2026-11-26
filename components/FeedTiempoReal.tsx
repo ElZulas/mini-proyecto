@@ -21,14 +21,12 @@ export default function FeedTiempoReal({
 }) {
   const { oscuro } = useTema();
   const enVivo = firestoreVivo || estado === "conectado";
-  const color = enVivo ? "bg-emerald-400" : estado === "conectando" ? "bg-amber-400" : "bg-rose-400";
+  const color = enVivo ? "bg-emerald-400" : "bg-amber-400";
   const texto = enVivo
     ? estado === "conectado"
       ? "En vivo · WebSocket"
       : "En vivo · Firestore"
-    : estado === "conectando"
-      ? "Conectando…"
-      : "Sin conexión en vivo";
+    : "Sincronizando…";
   const tarjeta = oscuro ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-white shadow-sm";
   const item = oscuro ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-zinc-50";
   const muted = "text-zinc-500";

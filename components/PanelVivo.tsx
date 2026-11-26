@@ -155,22 +155,15 @@ export default function PanelVivo() {
     router.replace("/login");
   }
 
-  // En Vercel no hay Socket.io; el vivo real es Firestore onSnapshot.
-  const enVivo = firestoreVivo || canal.estado === "conectado";
-  const conectandoVivo = !enVivo && canal.estado === "conectando";
-  const colorDatos = firestoreVivo ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]" : "bg-zinc-500";
-  const colorVivo = enVivo
-    ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]"
-    : conectandoVivo
-      ? "bg-amber-400"
-      : "bg-rose-400";
-  const etiquetaVivo = enVivo
+  // El indicador “en vivo” sigue a Firestore (onSnapshot). Socket.io solo refuerza en local.
+  const colorOk = "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]";
+  const colorDatos = firestoreVivo ? colorOk : "bg-zinc-500";
+  const colorVivo = firestoreVivo ? colorOk : "bg-amber-400";
+  const etiquetaVivo = firestoreVivo
     ? canal.estado === "conectado"
       ? "Actualizaciones en vivo (Firestore + WebSocket)"
-      : "Actualizaciones en vivo (Firestore)"
-    : conectandoVivo
-      ? "Conectando actualizaciones en vivo"
-      : "Sin actualizaciones en vivo";
+      : "Actualizaciones en vivo (Firestore onSnapshot)"
+    : "Conectando con Firestore…";
 
   return (
     <main
