@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
+import { useCallback, useEffect, useState } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
 
-import { db } from "@/lib/firebase-client";
 import { etiquetaLegible } from "@/lib/etiquetas-ui";
+import { db } from "@/lib/firebase-client";
 
 export interface UsuarioDetalle {
   id_usuario: string;
@@ -47,56 +47,45 @@ export interface CuarentenaDetalle {
   texto: string | null;
 }
 
-function iso(valor: unknown): string | null {
-  if (valor && typeof valor === "object" && "toDate" in valor && typeof (valor as { toDate: () => Date }).toDate === "function") {
-    return (valor as { toDate: () => Date }).toDate().toISOString();
-  }
-  return typeof valor === "string" ? valor : null;
+/** Escucha solo agregados/panel (1 doc) y vuelve a pedir listas por API. */
+function useVersionAgregado(alCambiar: () => void) {
+  useEffect(() => {
+    if (!db) return;
+    let primera = true;
+    return onSnapshot(doc(db, "agregados", "panel"), () => {
+      if (primera) {
+        primera = false;
+        return;
+      }
+      alCambiar();
+    });
+  }, [alCambiar]);
 }
 
-function numero(valor: unknown): number {
-  return typeof valor === "number" && Number.isFinite(valor) ? valor : 0;
-}
-
-function texto(valor: unknown): string | null {
-  return typeof valor === "string" && valor.trim() ? valor : null;
-}
-
-export function useUsuarios() {
+export function useUsuarios(filtros?: { estatus?: string; consentimiento?: string }) {
   const [filas, setFilas] = useState<UsuarioDetalle[]>([]);
   const [error, setError] = useState("");
 
+  const cargar = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filtros?.estatus) params.set("estatus", filtros.estatus);
+      if (filtros?.consentimiento) params.set("consentimiento", filtros.consentimiento);
+      const qs = params.toString();
+      const res = await fetch(`/api/usuarios${qs ? `?${qs}` : ""}`, { cache: "no-store" });
+      if (!res.ok) throw new Error("fail");
+      const data = (await res.json()) as { usuarios: UsuarioDetalle[] };
+      setFilas(data.usuarios);
+      setError("");
+    } catch {
+      setError("No se pudieron cargar los miembros.");
+    }
+  }, [filtros?.estatus, filtros?.consentimiento]);
+
   useEffect(() => {
-    if (!db) return;
-    return onSnapshot(
-      collection(db, "usuarios"),
-      (consulta) => {
-        setFilas(
-          consulta.docs.map((doc) => {
-            const fila = doc.data();
-            const consentimiento = String(fila.consentimiento_datos ?? "");
-            return {
-              id_usuario: doc.id,
-              alias: String(fila.alias ?? ""),
-              estatus: String(fila.estatus ?? ""),
-              consentimiento_datos: consentimiento,
-              rango_edad: String(fila.rango_edad ?? ""),
-              interes_principal: String(fila.interes_principal ?? ""),
-              plataforma_principal: String(fila.plataforma_principal ?? ""),
-              especie_fursona: String(fila.especie_fursona ?? ""),
-              ciudad: consentimiento === "si" ? texto(fila.ciudad) : null,
-              pais: consentimiento === "si" ? texto(fila.pais) : null,
-              es_artista: Boolean(fila.es_artista),
-              mensajes_30d: numero(fila.mensajes_30d),
-              reacciones_30d: numero(fila.reacciones_30d),
-              sentimiento_promedio: numero(fila.sentimiento_promedio),
-            };
-          }),
-        );
-      },
-      () => setError("No se pudieron cargar los miembros."),
-    );
-  }, []);
+    void cargar();
+  }, [cargar]);
+  useVersionAgregado(cargar);
 
   return { filas, error };
 }
@@ -105,32 +94,27 @@ export function useInteracciones() {
   const [filas, setFilas] = useState<InteraccionDetalle[]>([]);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!db) return;
-    return onSnapshot(
-      collection(db, "interacciones"),
-      (consulta) => {
-        setFilas(
-          consulta.docs.map((doc) => {
-            const fila = doc.data();
-            return {
-              id_interaccion: doc.id,
-              id_usuario: String(fila.id_usuario ?? ""),
-              timestamp: iso(fila.timestamp),
-              canal: String(fila.canal ?? ""),
-              tipo: String(fila.tipo ?? ""),
-              tema: String(fila.tema ?? ""),
-              texto: texto(fila.texto),
-              sentimiento: numero(fila.sentimiento),
-              dispositivo: String(fila.dispositivo ?? ""),
-              ciudad: texto(fila.ciudad),
-            };
-          }),
-        );
-      },
-      () => setError("No se pudieron cargar las interacciones."),
-    );
+  const cargar = useCallback(async () => {
+    try {
+      const res = await fetch("/api/interacciones?limite=500", { cache: "no-store" });
+      if (!res.ok) throw new Error("fail");
+      const data = (await res.json()) as { interacciones: InteraccionDetalle[] };
+      setFilas(
+        data.interacciones.map((fila) => ({
+          ...fila,
+          dispositivo: fila.dispositivo ?? "",
+        })),
+      );
+      setError("");
+    } catch {
+      setError("No se pudieron cargar las interacciones.");
+    }
   }, []);
+
+  useEffect(() => {
+    void cargar();
+  }, [cargar]);
+  useVersionAgregado(cargar);
 
   return { filas, error };
 }
@@ -139,30 +123,22 @@ export function useCuarentena() {
   const [filas, setFilas] = useState<CuarentenaDetalle[]>([]);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!db) return;
-    return onSnapshot(
-      collection(db, "cuarentena"),
-      (consulta) => {
-        setFilas(
-          consulta.docs.map((doc) => {
-            const fila = doc.data();
-            return {
-              id_interaccion: doc.id,
-              id_usuario: String(fila.id_usuario ?? ""),
-              motivo_rechazo: String(fila.motivo_rechazo ?? ""),
-              fecha_cuarentena: iso(fila.fecha_cuarentena),
-              canal: texto(fila.canal),
-              tipo: texto(fila.tipo),
-              tema: texto(fila.tema),
-              texto: texto(fila.texto),
-            };
-          }),
-        );
-      },
-      () => setError("No se pudo cargar la revisión."),
-    );
+  const cargar = useCallback(async () => {
+    try {
+      const res = await fetch("/api/cuarentena", { cache: "no-store" });
+      if (!res.ok) throw new Error("fail");
+      const data = (await res.json()) as { cuarentena: CuarentenaDetalle[] };
+      setFilas(data.cuarentena);
+      setError("");
+    } catch {
+      setError("No se pudo cargar la revisión.");
+    }
   }, []);
+
+  useEffect(() => {
+    void cargar();
+  }, [cargar]);
+  useVersionAgregado(cargar);
 
   return { filas, error };
 }

@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { collection, onSnapshot } from "firebase/firestore";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import FeedTiempoReal from "@/components/FeedTiempoReal";
@@ -12,140 +11,44 @@ import PanelHistorico from "@/components/PanelHistorico";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import { useTema } from "@/components/theme/ThemeProvider";
 import { useCanalTiempoReal } from "@/hooks/useCanalTiempoReal";
+import { usePanelAgregado } from "@/hooks/usePanelAgregado";
 import { CANALES, TEMAS } from "@/lib/dominios";
 import { conEtiqueta, etiquetaLegible } from "@/lib/etiquetas-ui";
-import { auth, db } from "@/lib/firebase-client";
-import { contar, promedio, tasaRiesgo } from "@/lib/kpis";
-import type { InteraccionViva, UsuarioVivo } from "@/lib/tipos";
+import { auth } from "@/lib/firebase-client";
 
 const COLORES = ["#f59e0b", "#22d3ee", "#a3e635", "#fb7185", "#c4b5fd", "#38bdf8"];
 
-function iso(valor: unknown): string | null {
-  if (valor && typeof valor === "object" && "toDate" in valor && typeof (valor as { toDate: () => Date }).toDate === "function") {
-    return (valor as { toDate: () => Date }).toDate().toISOString();
-  }
-  return typeof valor === "string" ? valor : null;
-}
-
-function numero(valor: unknown): number {
-  return typeof valor === "number" && Number.isFinite(valor) ? valor : 0;
-}
-
-function texto(valor: unknown): string | null {
-  return typeof valor === "string" && valor.trim() ? valor : null;
-}
-
 export default function PanelVivo() {
   const router = useRouter();
-  const [usuarios, setUsuarios] = useState<UsuarioVivo[]>([]);
-  const [interacciones, setInteracciones] = useState<InteraccionViva[]>([]);
-  const [cuarentena, setCuarentena] = useState(0);
-  const [error, setError] = useState("");
-  const [firestoreVivo, setFirestoreVivo] = useState(false);
-  const [pulso, setPulso] = useState(0);
+  const { panel, vivo: firestoreVivo, error, pulso } = usePanelAgregado();
   const canal = useCanalTiempoReal(true);
   const { oscuro } = useTema();
   const tarjeta = oscuro ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-white shadow-sm";
   const muted = oscuro ? "text-zinc-400" : "text-zinc-500";
   const suave = oscuro ? "text-zinc-500" : "text-zinc-400";
 
-  useEffect(() => {
-    if (!db) {
-      return;
-    }
-    const base = db;
-    // Capa BD (CDC equivalente): onSnapshot avisa en cuanto cambia un documento.
-    const quitarUsuarios = onSnapshot(
-      collection(base, "usuarios"),
-      (consulta) => {
-        setFirestoreVivo(true);
-        setPulso(Date.now());
-        setUsuarios(
-          consulta.docs.map((doc) => {
-            const fila = doc.data();
-            return {
-              id_usuario: doc.id,
-              alias: String(fila.alias ?? ""),
-              estatus: String(fila.estatus ?? ""),
-              consentimiento_datos: String(fila.consentimiento_datos ?? ""),
-              rango_edad: String(fila.rango_edad ?? ""),
-              interes_principal: String(fila.interes_principal ?? ""),
-              ciudad: fila.consentimiento_datos === "si" ? texto(fila.ciudad) : null,
-            };
-          }),
-        );
-      },
-      () => setError("No se pudieron leer los usuarios."),
-    );
-    const quitarInteracciones = onSnapshot(
-      collection(base, "interacciones"),
-      (consulta) => {
-        setFirestoreVivo(true);
-        setPulso(Date.now());
-        setInteracciones(
-          consulta.docs.map((doc) => {
-            const fila = doc.data();
-            return {
-              id_interaccion: doc.id,
-              id_usuario: String(fila.id_usuario ?? ""),
-              timestamp: iso(fila.timestamp),
-              canal: String(fila.canal ?? ""),
-              tipo: String(fila.tipo ?? ""),
-              tema: String(fila.tema ?? ""),
-              texto: texto(fila.texto),
-              sentimiento: numero(fila.sentimiento),
-              ciudad: texto(fila.ciudad),
-            };
-          }),
-        );
-      },
-      () => setError("No se pudieron leer las interacciones."),
-    );
-    const quitarCuarentena = onSnapshot(
-      collection(base, "cuarentena"),
-      (consulta) => {
-        setFirestoreVivo(true);
-        setCuarentena(consulta.size);
-      },
-      () => setError("No se pudo leer la cuarentena."),
-    );
-    return () => {
-      quitarUsuarios();
-      quitarInteracciones();
-      quitarCuarentena();
-    };
-  }, []);
-
-  const resumen = useMemo(() => {
-    const enRiesgo = usuarios.filter((usuario) => usuario.estatus === "en_riesgo").length;
-    return {
-      enRiesgo,
-      tasa: tasaRiesgo(enRiesgo, usuarios.length),
-      sentimiento: promedio(interacciones.map((fila) => fila.sentimiento)),
-      sinConsentimiento: usuarios.filter((usuario) => usuario.consentimiento_datos === "no").length,
-      porCanal: contar(interacciones.map((fila) => fila.canal)),
-      porTipo: contar(interacciones.map((fila) => fila.tipo)),
-      porEstatus: contar(usuarios.map((usuario) => usuario.estatus)),
-    };
-  }, [usuarios, interacciones]);
+  const resumen = useMemo(
+    () => ({
+      tasa: panel.tasa_riesgo,
+      sentimiento: panel.sentimiento_promedio,
+      sinConsentimiento: panel.sin_consentimiento,
+      porCanal: panel.por_canal,
+      porTipo: panel.por_tipo,
+      porEstatus: panel.por_estatus,
+    }),
+    [panel],
+  );
 
   const calor = useMemo(() => {
     const mapa = new Map<string, number>();
-    for (const fila of interacciones) {
-      const clave = `${fila.tema}|${fila.canal}`;
-      mapa.set(clave, (mapa.get(clave) ?? 0) + 1);
+    for (const celda of panel.calor) {
+      mapa.set(`${celda.tema}|${celda.canal}`, celda.total);
     }
-    const maximo = Math.max(1, ...mapa.values());
+    const maximo = Math.max(1, ...mapa.values(), 0);
     return { mapa, maximo };
-  }, [interacciones]);
+  }, [panel.calor]);
 
-  const recientes = useMemo(
-    () =>
-      [...interacciones]
-        .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))
-        .slice(0, 8),
-    [interacciones],
-  );
+  const recientes = panel.recientes;
 
   async function salir() {
     await fetch("/api/sesion", { method: "DELETE" });
@@ -155,16 +58,15 @@ export default function PanelVivo() {
     router.replace("/login");
   }
 
-  // El indicador “en vivo” sigue a Firestore (onSnapshot). Socket.io solo refuerza en local.
+  // 1 doc onSnapshot (agregados/panel) — no 2000 lecturas por visita.
   const colorOk = "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]";
   const colorDatos = firestoreVivo ? colorOk : "bg-zinc-500";
   const colorVivo = firestoreVivo ? colorOk : "bg-amber-400";
   const etiquetaVivo = firestoreVivo
     ? canal.estado === "conectado"
-      ? "Actualizaciones en vivo (Firestore + WebSocket)"
-      : "Actualizaciones en vivo (Firestore onSnapshot)"
+      ? "Actualizaciones en vivo (agregado + WebSocket)"
+      : "Actualizaciones en vivo (agregado Firestore)"
     : "Conectando con Firestore…";
-
   return (
     <main
       className={`min-h-screen transition-colors duration-500 ${
@@ -227,7 +129,7 @@ export default function PanelVivo() {
           clase={tarjeta}
           muted={suave}
           titulo="Miembros"
-          valor={String(usuarios.length)}
+          valor={String(panel.usuarios)}
           nota="Total de personas en el padrón de la comunidad."
         />
         <Tarjeta
@@ -243,7 +145,7 @@ export default function PanelVivo() {
           clase={tarjeta}
           muted={suave}
           titulo="Interacciones"
-          valor={String(interacciones.length)}
+          valor={String(panel.interacciones)}
           nota="Mensajes, comentarios y reacciones válidas."
         />
         <Tarjeta
@@ -259,7 +161,7 @@ export default function PanelVivo() {
           clase={tarjeta}
           muted={suave}
           titulo="En revisión"
-          valor={String(cuarentena)}
+          valor={String(panel.cuarentena)}
           nota="Interacciones retenidas por inconsistencias."
         />
         <Tarjeta

@@ -5,6 +5,7 @@ import { anularGeo, validarAlta, validarParcial, type InteraccionValida } from "
 import { adminDb } from "@/lib/firebase-admin";
 import { esError, exigirSesion, jsonError } from "@/lib/sesion";
 import { serializar } from "@/lib/serializar";
+import { reconstruirPanelAgregado } from "@/lib/agregar-panel";
 import { emitirInteraccion } from "@/lib/socket-server";
 
 export const dynamic = "force-dynamic";
@@ -85,6 +86,7 @@ export async function PATCH(request: NextRequest, contexto: Contexto) {
       ...final,
       timestamp: Timestamp.fromDate(new Date(final.timestamp)),
     });
+    await reconstruirPanelAgregado().catch((err) => console.error("agregado", err));
     emitirInteraccion({
       tipo: "modificada",
       id_interaccion: id,
@@ -113,6 +115,7 @@ export async function DELETE(request: NextRequest, contexto: Contexto) {
     }
     const data = actual.data() ?? {};
     await referencia.delete();
+    await reconstruirPanelAgregado().catch((err) => console.error("agregado", err));
     emitirInteraccion({
       tipo: "eliminada",
       id_interaccion: id,

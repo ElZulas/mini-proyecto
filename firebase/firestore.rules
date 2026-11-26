@@ -23,5 +23,11 @@ service cloud.firestore {
       allow read: if sesionActiva();
       allow write: if false;
     }
+
+    // Documento único con KPIs del dashboard (evita leer colecciones enteras en el cliente).
+    match /agregados/{id} {
+      allow read: if sesionActiva();
+      allow write: if false;
+    }
   }
 }

@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "node server.mjs",
     "build": "next build",
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "rebuild:panel": "node scripts/rebuild_agregado.mjs"
   },
   "dependencies": {
     "firebase": "^11.10.0",
