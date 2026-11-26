@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// COMMUNITY 360.
+// El navegador autenticado solo lee. La carga (ETL) y la API escriben con
+// Firebase Admin SDK, que no pasa por estas reglas.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function sesionActiva() {
+      return request.auth != null;
+    }
+
+    match /usuarios/{idUsuario} {
+      allow read: if sesionActiva();
+      allow write: if false;
+    }
+
+    match /interacciones/{idInteraccion} {
+      allow read: if sesionActiva();
+      allow write: if false;
+    }
+
+    match /cuarentena/{idInteraccion} {
+      allow read: if sesionActiva();
+      allow write: if false;
+    }
+  }
+}

@@ -1,0 +1,149 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --fondo: #07090d;
+  --panel: #10141c;
+  --linea: #243041;
+  --texto: #f4f1ea;
+  --muted: #9aa6b2;
+  --acento: #f0a202;
+  --acento-2: #2dd4bf;
+}
+
+body {
+  @apply antialiased;
+  background: var(--fondo);
+  color: var(--texto);
+}
+
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes flotar {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes brillo {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.anim-subir {
+  animation: subir 0.7s ease-out both;
+}
+
+.anim-subir-delay-1 {
+  animation: subir 0.7s ease-out 0.12s both;
+}
+
+.anim-subir-delay-2 {
+  animation: subir 0.7s ease-out 0.24s both;
+}
+
+.anim-subir-delay-3 {
+  animation: subir 0.7s ease-out 0.36s both;
+}
+
+.anim-flotar {
+  animation: flotar 7s ease-in-out infinite;
+}
+
+.anim-brillo {
+  animation: brillo 5s ease-in-out infinite;
+}
+
+@keyframes float-card {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes blob-pulse {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.03) rotate(1.5deg);
+  }
+}
+
+@keyframes hero-texto {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes barra-lleno {
+  from {
+    transform: scaleX(0.2);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.anim-float-card {
+  animation: float-card 5.5s ease-in-out infinite;
+  will-change: transform;
+}
+
+.anim-blob {
+  animation: blob-pulse 8s ease-in-out infinite;
+  will-change: transform;
+}
+
+.anim-hero-texto {
+  animation: hero-texto 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-barra {
+  transform-origin: left center;
+  animation: barra-lleno 1.4s ease-out 0.4s both;
+}
+
+.fondo-atmosfera {
+  background:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(240, 162, 2, 0.18), transparent 55%),
+    radial-gradient(ellipse 60% 45% at 90% 10%, rgba(45, 212, 191, 0.12), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(36, 48, 65, 0.9), transparent 60%),
+    var(--fondo);
+}
+
+.rejilla {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+}

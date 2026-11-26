@@ -1,0 +1,69 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "interacciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "canal", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "interacciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tema", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "interacciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "interacciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "id_usuario", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "interacciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dispositivo", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "interacciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "etiquetas", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "usuarios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estatus", "order": "ASCENDING" },
+        { "fieldPath": "ultima_actividad", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cuarentena",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "motivo_rechazo", "order": "ASCENDING" },
+        { "fieldPath": "fecha_cuarentena", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
