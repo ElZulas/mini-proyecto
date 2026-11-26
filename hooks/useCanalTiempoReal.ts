@@ -20,9 +20,8 @@ export function useCanalTiempoReal(activo: boolean) {
     if (!activo) {
       return;
     }
-    // En Vercel no hay server.mjs; el tiempo real del dashboard sigue con onSnapshot.
+    // En Vercel no hay server.mjs persistente; el vivo del panel es onSnapshot.
     if (process.env.NEXT_PUBLIC_SOCKET_IO === "0") {
-      setEstado("desconectado");
       return;
     }
     setEstado("conectando");
@@ -31,12 +30,16 @@ export function useCanalTiempoReal(activo: boolean) {
       transports: ["websocket", "polling"],
       withCredentials: true,
       autoConnect: true,
-      reconnectionAttempts: 3,
+      reconnectionAttempts: 2,
+      timeout: 4000,
     });
 
     socket.on("connect", () => setEstado("conectado"));
     socket.on("disconnect", () => setEstado("desconectado"));
-    socket.on("connect_error", () => setEstado("desconectado"));
+    socket.on("connect_error", () => {
+      setEstado("desconectado");
+      socket.disconnect();
+    });
     socket.on(CANAL_INTERACCION, (evento: EventoInteraccion) => {
       setUltimo(evento);
       setEventos((previos) => [evento, ...previos].slice(0, 12));

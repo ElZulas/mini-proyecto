@@ -155,13 +155,22 @@ export default function PanelVivo() {
     router.replace("/login");
   }
 
+  // En Vercel no hay Socket.io; el vivo real es Firestore onSnapshot.
+  const enVivo = firestoreVivo || canal.estado === "conectado";
+  const conectandoVivo = !enVivo && canal.estado === "conectando";
   const colorDatos = firestoreVivo ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]" : "bg-zinc-500";
-  const colorVivo =
-    canal.estado === "conectado"
-      ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]"
-      : canal.estado === "conectando"
-        ? "bg-amber-400"
-        : "bg-rose-400";
+  const colorVivo = enVivo
+    ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]"
+    : conectandoVivo
+      ? "bg-amber-400"
+      : "bg-rose-400";
+  const etiquetaVivo = enVivo
+    ? canal.estado === "conectado"
+      ? "Actualizaciones en vivo (Firestore + WebSocket)"
+      : "Actualizaciones en vivo (Firestore)"
+    : conectandoVivo
+      ? "Conectando actualizaciones en vivo"
+      : "Sin actualizaciones en vivo";
 
   return (
     <main
@@ -194,23 +203,7 @@ export default function PanelVivo() {
             aria-label={firestoreVivo ? "Datos sincronizados" : "Sin conexión a los datos"}
             className={`h-2.5 w-2.5 rounded-full ${colorDatos}`}
           />
-          <span
-            title={
-              canal.estado === "conectado"
-                ? "Actualizaciones en vivo"
-                : canal.estado === "conectando"
-                  ? "Conectando actualizaciones en vivo"
-                  : "Sin actualizaciones en vivo"
-            }
-            aria-label={
-              canal.estado === "conectado"
-                ? "Actualizaciones en vivo"
-                : canal.estado === "conectando"
-                  ? "Conectando actualizaciones en vivo"
-                  : "Sin actualizaciones en vivo"
-            }
-            className={`h-2.5 w-2.5 rounded-full ${colorVivo}`}
-          />
+          <span title={etiquetaVivo} aria-label={etiquetaVivo} className={`h-2.5 w-2.5 rounded-full ${colorVivo}`} />
         </div>
       </div>
 
@@ -397,7 +390,7 @@ export default function PanelVivo() {
         </div>
       </section>
 
-      <FeedTiempoReal estado={canal.estado} eventos={canal.eventos} />
+      <FeedTiempoReal estado={canal.estado} eventos={canal.eventos} firestoreVivo={firestoreVivo} />
       <PanelHistorico />
 
       <footer className={`mt-10 border-t pt-4 text-xs ${oscuro ? "border-white/10" : "border-zinc-200"} ${muted}`}>

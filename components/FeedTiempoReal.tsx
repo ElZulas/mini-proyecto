@@ -13,15 +13,22 @@ const ETIQUETA: Record<EventoInteraccion["tipo"], string> = {
 export default function FeedTiempoReal({
   estado,
   eventos,
+  firestoreVivo = false,
 }: {
   estado: EstadoSocket;
   eventos: EventoInteraccion[];
+  firestoreVivo?: boolean;
 }) {
   const { oscuro } = useTema();
-  const color =
-    estado === "conectado" ? "bg-emerald-400" : estado === "conectando" ? "bg-amber-400" : "bg-rose-400";
-  const texto =
-    estado === "conectado" ? "En vivo" : estado === "conectando" ? "Conectando…" : "Sin conexión en vivo";
+  const enVivo = firestoreVivo || estado === "conectado";
+  const color = enVivo ? "bg-emerald-400" : estado === "conectando" ? "bg-amber-400" : "bg-rose-400";
+  const texto = enVivo
+    ? estado === "conectado"
+      ? "En vivo · WebSocket"
+      : "En vivo · Firestore"
+    : estado === "conectando"
+      ? "Conectando…"
+      : "Sin conexión en vivo";
   const tarjeta = oscuro ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-white shadow-sm";
   const item = oscuro ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-zinc-50";
   const muted = "text-zinc-500";
