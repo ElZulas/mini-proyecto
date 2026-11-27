@@ -5,7 +5,7 @@ import { anularGeo, validarAlta, type InteraccionValida } from "@/lib/esquema";
 import { adminDb } from "@/lib/firebase-admin";
 import { serializar } from "@/lib/serializar";
 import { esError, exigirSesion, jsonError } from "@/lib/sesion";
-import { reconstruirPanelAgregado } from "@/lib/agregar-panel";
+import { actualizarPanelPorInteraccion } from "@/lib/agregar-panel";
 import { emitirInteraccion } from "@/lib/socket-server";
 
 export const dynamic = "force-dynamic";
@@ -82,7 +82,21 @@ export async function POST(request: NextRequest) {
       return privado;
     }
     await referencia.set(aDocumento(privado.valor));
-    await reconstruirPanelAgregado().catch((err) => console.error("agregado", err));
+    await actualizarPanelPorInteraccion({
+      tipo: "creada",
+      id: privado.valor.id_interaccion,
+      nueva: {
+        id_interaccion: privado.valor.id_interaccion,
+        id_usuario: privado.valor.id_usuario,
+        timestamp: privado.valor.timestamp,
+        canal: privado.valor.canal,
+        tipo: privado.valor.tipo,
+        tema: privado.valor.tema,
+        texto: privado.valor.texto,
+        sentimiento: privado.valor.sentimiento,
+        ciudad: privado.valor.ciudad,
+      },
+    }).catch((err) => console.error("agregado", err));
     emitirInteraccion({
       tipo: "creada",
       id_interaccion: privado.valor.id_interaccion,

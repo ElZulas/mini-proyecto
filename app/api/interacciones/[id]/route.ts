@@ -5,7 +5,7 @@ import { anularGeo, validarAlta, validarParcial, type InteraccionValida } from "
 import { adminDb } from "@/lib/firebase-admin";
 import { esError, exigirSesion, jsonError } from "@/lib/sesion";
 import { serializar } from "@/lib/serializar";
-import { reconstruirPanelAgregado } from "@/lib/agregar-panel";
+import { actualizarPanelPorInteraccion } from "@/lib/agregar-panel";
 import { emitirInteraccion } from "@/lib/socket-server";
 
 export const dynamic = "force-dynamic";
@@ -86,7 +86,32 @@ export async function PATCH(request: NextRequest, contexto: Contexto) {
       ...final,
       timestamp: Timestamp.fromDate(new Date(final.timestamp)),
     });
-    await reconstruirPanelAgregado().catch((err) => console.error("agregado", err));
+    await actualizarPanelPorInteraccion({
+      tipo: "modificada",
+      id,
+      anterior: {
+        id_interaccion: id,
+        id_usuario: base.id_usuario,
+        timestamp: base.timestamp,
+        canal: base.canal,
+        tipo: base.tipo,
+        tema: base.tema,
+        texto: base.texto,
+        sentimiento: base.sentimiento,
+        ciudad: base.ciudad,
+      },
+      nueva: {
+        id_interaccion: id,
+        id_usuario: final.id_usuario,
+        timestamp: final.timestamp,
+        canal: final.canal,
+        tipo: final.tipo,
+        tema: final.tema,
+        texto: final.texto,
+        sentimiento: final.sentimiento,
+        ciudad: final.ciudad,
+      },
+    }).catch((err) => console.error("agregado", err));
     emitirInteraccion({
       tipo: "modificada",
       id_interaccion: id,
@@ -115,7 +140,21 @@ export async function DELETE(request: NextRequest, contexto: Contexto) {
     }
     const data = actual.data() ?? {};
     await referencia.delete();
-    await reconstruirPanelAgregado().catch((err) => console.error("agregado", err));
+    await actualizarPanelPorInteraccion({
+      tipo: "eliminada",
+      id,
+      anterior: {
+        id_interaccion: id,
+        id_usuario: typeof data.id_usuario === "string" ? data.id_usuario : "",
+        timestamp: typeof data.timestamp === "string" ? data.timestamp : null,
+        canal: typeof data.canal === "string" ? data.canal : "",
+        tipo: typeof data.tipo === "string" ? data.tipo : "",
+        tema: typeof data.tema === "string" ? data.tema : "",
+        texto: typeof data.texto === "string" ? data.texto : null,
+        sentimiento: typeof data.sentimiento === "number" ? data.sentimiento : 0,
+        ciudad: typeof data.ciudad === "string" ? data.ciudad : null,
+      },
+    }).catch((err) => console.error("agregado", err));
     emitirInteraccion({
       tipo: "eliminada",
       id_interaccion: id,
