@@ -6,7 +6,7 @@ import SeccionShell from "@/components/dashboard/SeccionShell";
 import TablaBase from "@/components/dashboard/TablaBase";
 import { useTema } from "@/components/theme/ThemeProvider";
 import { useUsuarios } from "@/hooks/useDatosComunidad";
-import { tasaRiesgo } from "@/lib/kpis";
+import { usePanelAgregado } from "@/hooks/usePanelAgregado";
 
 export default function PaginaRiesgo() {
   return (
@@ -18,8 +18,9 @@ export default function PaginaRiesgo() {
 
 function Contenido() {
   const { filas: enRiesgo, error } = useUsuarios({ estatus: "en_riesgo" });
+  const { panel } = usePanelAgregado();
   const { oscuro } = useTema();
-  const tasa = tasaRiesgo(enRiesgo.length, filas.length);
+  const enRiesgoTotal = panel.por_estatus.find((p) => p.clave === "en_riesgo")?.total ?? enRiesgo.length;
 
   return (
     <SeccionShell
@@ -29,9 +30,12 @@ function Contenido() {
       {error ? <p className="mb-4 text-sm text-rose-400">{error}</p> : null}
       <ResumenCifras
         items={[
-          { etiqueta: "En riesgo", valor: String(enRiesgo.length) },
-          { etiqueta: "Tasa", valor: tasa === null ? "—" : `${(tasa * 100).toFixed(1)} %` },
-          { etiqueta: "Padron", valor: String(filas.length) },
+          { etiqueta: "En riesgo", valor: String(enRiesgoTotal) },
+          {
+            etiqueta: "Tasa",
+            valor: panel.tasa_riesgo === null ? "—" : `${(panel.tasa_riesgo * 100).toFixed(1)} %`,
+          },
+          { etiqueta: "Padrón", valor: String(panel.usuarios) },
         ]}
       />
       <div className={`rounded-2xl border p-4 ${oscuro ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-white"}`}>

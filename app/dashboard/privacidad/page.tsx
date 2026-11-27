@@ -6,6 +6,7 @@ import SeccionShell from "@/components/dashboard/SeccionShell";
 import TablaBase from "@/components/dashboard/TablaBase";
 import { useTema } from "@/components/theme/ThemeProvider";
 import { useUsuarios } from "@/hooks/useDatosComunidad";
+import { usePanelAgregado } from "@/hooks/usePanelAgregado";
 import { etiquetaLegible } from "@/lib/etiquetas-ui";
 
 export default function PaginaPrivacidad() {
@@ -18,7 +19,10 @@ export default function PaginaPrivacidad() {
 
 function Contenido() {
   const { filas: sinUbicacion, error } = useUsuarios({ consentimiento: "no" });
+  const { panel } = usePanelAgregado();
   const { oscuro } = useTema();
+  const sinGeo = panel.sin_consentimiento;
+  const conGeo = Math.max(0, panel.usuarios - sinGeo);
 
   return (
     <SeccionShell
@@ -28,11 +32,11 @@ function Contenido() {
       {error ? <p className="mb-4 text-sm text-rose-400">{error}</p> : null}
       <ResumenCifras
         items={[
-          { etiqueta: "Sin consentimiento geo", valor: String(sinUbicacion.length) },
-          { etiqueta: "Con consentimiento", valor: String(filas.length - sinUbicacion.length) },
+          { etiqueta: "Sin consentimiento geo", valor: String(sinGeo) },
+          { etiqueta: "Con consentimiento", valor: String(conGeo) },
           {
             etiqueta: "Proporción",
-            valor: filas.length === 0 ? "—" : `${((sinUbicacion.length / filas.length) * 100).toFixed(1)} %`,
+            valor: panel.usuarios === 0 ? "—" : `${((sinGeo / panel.usuarios) * 100).toFixed(1)} %`,
           },
         ]}
       />
