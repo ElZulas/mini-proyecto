@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 
@@ -8,6 +8,14 @@ import type { CeldaCalor, PanelAgregado } from "@/lib/agregar-panel";
 import { auth, db } from "@/lib/firebase-client";
 import type { Punto } from "@/lib/kpis";
 import type { InteraccionViva } from "@/lib/tipos";
+
+export interface AvisoPanel {
+  id: string;
+  tipo: "creada" | "modificada" | "eliminada" | "actualizada";
+  id_interaccion: string | null;
+  mensaje: string;
+  en: string;
+}
 
 function vacio(): PanelAgregado {
   return {
@@ -57,12 +65,45 @@ function desdeData(data: Record<string, unknown>): PanelAgregado {
   };
 }
 
-/** 1 lectura del doc agregado. Espera Auth antes de suscribirse (evita fallo de permisos → foquito rojo). */
+function armarAviso(previo: PanelAgregado, actual: PanelAgregado): AvisoPanel {
+  const en = new Date().toISOString();
+  const top = actual.recientes[0]?.id_interaccion ?? null;
+  if (actual.interacciones > previo.interacciones) {
+    return {
+      id: `${actual.version}-creada`,
+      tipo: "creada",
+      id_interaccion: top,
+      mensaje: `Nueva interacción${top ? ` · ${top}` : ""}`,
+      en,
+    };
+  }
+  if (actual.interacciones < previo.interacciones) {
+    return {
+      id: `${actual.version}-eliminada`,
+      tipo: "eliminada",
+      id_interaccion: null,
+      mensaje: "Interacción eliminada · el panel se actualizó",
+      en,
+    };
+  }
+  return {
+    id: `${actual.version}-modificada`,
+    tipo: "modificada",
+    id_interaccion: top,
+    mensaje: `Interacción actualizada${top ? ` · ${top}` : ""}`,
+    en,
+  };
+}
+
+/** 1 lectura del doc agregado + avisos visibles cuando Postman muta (sin WebSocket). */
 export function usePanelAgregado() {
   const [panel, setPanel] = useState<PanelAgregado>(vacio);
   const [vivo, setVivo] = useState(false);
   const [error, setError] = useState("");
   const [pulso, setPulso] = useState(0);
+  const [avisos, setAvisos] = useState<AvisoPanel[]>([]);
+  const [ultimoAviso, setUltimoAviso] = useState<AvisoPanel | null>(null);
+  const previoRef = useRef<PanelAgregado | null>(null);
 
   useEffect(() => {
     if (!db || !auth) return;
@@ -81,7 +122,15 @@ export function usePanelAgregado() {
             setVivo(false);
             return;
           }
-          setPanel(desdeData(snap.data() as Record<string, unknown>));
+          const siguiente = desdeData(snap.data() as Record<string, unknown>);
+          const previo = previoRef.current;
+          if (previo && siguiente.version !== previo.version) {
+            const aviso = armarAviso(previo, siguiente);
+            setUltimoAviso(aviso);
+            setAvisos((lista) => [aviso, ...lista].slice(0, 12));
+          }
+          previoRef.current = siguiente;
+          setPanel(siguiente);
           setVivo(true);
           setPulso(Date.now());
           setError("");
@@ -99,5 +148,5 @@ export function usePanelAgregado() {
     };
   }, []);
 
-  return { panel, vivo, error, pulso };
+  return { panel, vivo, error, pulso, avisos, ultimoAviso };
 }

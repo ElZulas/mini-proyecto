@@ -20,7 +20,7 @@ const COLORES = ["#f59e0b", "#22d3ee", "#a3e635", "#fb7185", "#c4b5fd", "#38bdf8
 
 export default function PanelVivo() {
   const router = useRouter();
-  const { panel, vivo: firestoreVivo, error, pulso } = usePanelAgregado();
+  const { panel, vivo: firestoreVivo, error, pulso, avisos, ultimoAviso } = usePanelAgregado();
   const canal = useCanalTiempoReal(true);
   const { oscuro } = useTema();
   const tarjeta = oscuro ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-white shadow-sm";
@@ -110,7 +110,7 @@ export default function PanelVivo() {
       </header>
 
       {error ? <p className="mt-4 text-sm text-rose-400">{error}</p> : null}
-      {canal.ultimo ? (
+      {ultimoAviso || canal.ultimo ? (
         <p
           className={`mt-4 rounded-xl border px-3 py-2 text-sm ${
             oscuro
@@ -118,7 +118,9 @@ export default function PanelVivo() {
               : "border-amber-500/30 bg-amber-50 text-amber-900"
           }`}
         >
-          Cambio reciente: {etiquetaEvento(canal.ultimo.tipo)} · {canal.ultimo.id_interaccion}
+          {ultimoAviso
+            ? `Cambio reciente: ${ultimoAviso.mensaje}`
+            : `Cambio reciente: ${etiquetaEvento(canal.ultimo!.tipo)} · ${canal.ultimo!.id_interaccion}`}
         </p>
       ) : null}
 
@@ -284,7 +286,7 @@ export default function PanelVivo() {
         </div>
       </section>
 
-      <FeedTiempoReal estado={canal.estado} eventos={canal.eventos} firestoreVivo={enVivo} />
+      <FeedTiempoReal estado={canal.estado} eventos={canal.eventos} avisos={avisos} firestoreVivo={enVivo} />
       <PanelHistorico />
 
       <footer className={`mt-10 border-t pt-4 text-xs ${oscuro ? "border-white/10" : "border-zinc-200"} ${muted}`}>

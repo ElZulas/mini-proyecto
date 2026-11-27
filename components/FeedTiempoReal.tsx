@@ -1,6 +1,7 @@
 "use client";
 
 import { useTema } from "@/components/theme/ThemeProvider";
+import type { AvisoPanel } from "@/hooks/usePanelAgregado";
 import type { EstadoSocket } from "@/hooks/useCanalTiempoReal";
 import type { EventoInteraccion } from "@/lib/eventos-tiempo-real";
 
@@ -13,23 +14,40 @@ const ETIQUETA: Record<EventoInteraccion["tipo"], string> = {
 export default function FeedTiempoReal({
   estado,
   eventos,
+  avisos = [],
   firestoreVivo = false,
 }: {
   estado: EstadoSocket;
   eventos: EventoInteraccion[];
+  avisos?: AvisoPanel[];
   firestoreVivo?: boolean;
 }) {
   const { oscuro } = useTema();
   const enVivo = firestoreVivo || estado === "conectado";
   const color = enVivo ? "bg-emerald-400" : "bg-amber-400";
-  const texto = enVivo
-    ? estado === "conectado"
-      ? "En vivo · WebSocket"
-      : "En vivo · Firestore"
-    : "Sincronizando…";
+  const texto = enVivo ? "En vivo · Firestore" : "Sincronizando…";
   const tarjeta = oscuro ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-white shadow-sm";
   const item = oscuro ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-zinc-50";
   const muted = "text-zinc-500";
+
+  const filasSocket = eventos.map((evento) => ({
+    key: `ws-${evento.tipo}-${evento.id_interaccion}-${evento.en}`,
+    texto: (
+      <>
+        Interacción <span className="font-mono text-amber-500">{evento.id_interaccion}</span> {ETIQUETA[evento.tipo]}
+        {evento.canal ? <span className={muted}> · {evento.canal}</span> : null}
+      </>
+    ),
+    hora: evento.en,
+  }));
+
+  const filasAvisos = avisos.map((aviso) => ({
+    key: `fs-${aviso.id}`,
+    texto: <>{aviso.mensaje}</>,
+    hora: aviso.en,
+  }));
+
+  const filas = [...filasAvisos, ...filasSocket].slice(0, 12);
 
   return (
     <section className={`mt-4 rounded-2xl border p-4 ${tarjeta}`}>
@@ -37,7 +55,7 @@ export default function FeedTiempoReal({
         <div>
           <h2 className="text-sm font-semibold">Actividad reciente</h2>
           <p className={`text-xs ${muted}`}>
-            Cambios de interacciones que llegan al panel sin recargar la página.
+            Avisos del panel cuando Postman crea, edita o elimina (sin recargar).
           </p>
         </div>
         <p
@@ -49,23 +67,19 @@ export default function FeedTiempoReal({
           {texto}
         </p>
       </div>
-      {eventos.length === 0 ? (
+      {filas.length === 0 ? (
         <p className={`mt-4 text-sm ${muted}`}>
-          Todavía no hay cambios recientes. Cuando se cree, edite o elimine una interacción, aparecerá aquí.
+          Todavía no hay cambios recientes. Cuando mandes POST/PATCH/DELETE, saldrá aquí el aviso.
         </p>
       ) : (
         <ul className="mt-4 space-y-2">
-          {eventos.map((evento) => (
+          {filas.map((fila) => (
             <li
-              key={`${evento.tipo}-${evento.id_interaccion}-${evento.en}`}
+              key={fila.key}
               className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm ${item}`}
             >
-              <span>
-                Interacción <span className="font-mono text-amber-500">{evento.id_interaccion}</span>{" "}
-                <span>{ETIQUETA[evento.tipo]}</span>
-                {evento.canal ? <span className={muted}> · {evento.canal}</span> : null}
-              </span>
-              <span className={`font-mono text-xs ${muted}`}>{new Date(evento.en).toLocaleTimeString("es-MX")}</span>
+              <span>{fila.texto}</span>
+              <span className={`font-mono text-xs ${muted}`}>{new Date(fila.hora).toLocaleTimeString("es-MX")}</span>
             </li>
           ))}
         </ul>
