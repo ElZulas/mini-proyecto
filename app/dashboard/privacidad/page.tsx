@@ -17,9 +17,8 @@ export default function PaginaPrivacidad() {
 }
 
 function Contenido() {
-  const { filas, error } = useUsuarios();
+  const { filas: sinUbicacion, error } = useUsuarios({ consentimiento: "no" });
   const { oscuro } = useTema();
-  const sinUbicacion = filas.filter((fila) => fila.consentimiento_datos === "no");
 
   return (
     <SeccionShell

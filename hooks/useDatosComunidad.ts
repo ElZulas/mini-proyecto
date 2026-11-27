@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
 
 import { etiquetaLegible } from "@/lib/etiquetas-ui";
-import { db } from "@/lib/firebase-client";
 
 export interface UsuarioDetalle {
   id_usuario: string;
@@ -47,32 +45,21 @@ export interface CuarentenaDetalle {
   texto: string | null;
 }
 
-/** Escucha solo agregados/panel (1 doc) y vuelve a pedir listas por API. */
-function useVersionAgregado(alCambiar: () => void) {
-  useEffect(() => {
-    if (!db) return;
-    let primera = true;
-    return onSnapshot(doc(db, "agregados", "panel"), () => {
-      if (primera) {
-        primera = false;
-        return;
-      }
-      alCambiar();
-    });
-  }, [alCambiar]);
-}
-
+/**
+ * Listas por API con límite bajo.
+ * Sin onSnapshot de colección y sin refetch al mutar el agregado
+ * (eso era lo que disparaba miles de lecturas al abrir secciones / Postman).
+ */
 export function useUsuarios(filtros?: { estatus?: string; consentimiento?: string }) {
   const [filas, setFilas] = useState<UsuarioDetalle[]>([]);
   const [error, setError] = useState("");
 
   const cargar = useCallback(async () => {
     try {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({ limite: "40" });
       if (filtros?.estatus) params.set("estatus", filtros.estatus);
       if (filtros?.consentimiento) params.set("consentimiento", filtros.consentimiento);
-      const qs = params.toString();
-      const res = await fetch(`/api/usuarios${qs ? `?${qs}` : ""}`, { cache: "no-store" });
+      const res = await fetch(`/api/usuarios?${params}`, { cache: "no-store" });
       if (!res.ok) throw new Error("fail");
       const data = (await res.json()) as { usuarios: UsuarioDetalle[] };
       setFilas(data.usuarios);
@@ -85,7 +72,6 @@ export function useUsuarios(filtros?: { estatus?: string; consentimiento?: strin
   useEffect(() => {
     void cargar();
   }, [cargar]);
-  useVersionAgregado(cargar);
 
   return { filas, error };
 }
@@ -94,27 +80,25 @@ export function useInteracciones() {
   const [filas, setFilas] = useState<InteraccionDetalle[]>([]);
   const [error, setError] = useState("");
 
-  const cargar = useCallback(async () => {
-    try {
-      const res = await fetch("/api/interacciones?limite=500", { cache: "no-store" });
-      if (!res.ok) throw new Error("fail");
-      const data = (await res.json()) as { interacciones: InteraccionDetalle[] };
-      setFilas(
-        data.interacciones.map((fila) => ({
-          ...fila,
-          dispositivo: fila.dispositivo ?? "",
-        })),
-      );
-      setError("");
-    } catch {
-      setError("No se pudieron cargar las interacciones.");
-    }
-  }, []);
-
   useEffect(() => {
-    void cargar();
-  }, [cargar]);
-  useVersionAgregado(cargar);
+    let cancelado = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/interacciones?limite=40", { cache: "no-store" });
+        if (!res.ok) throw new Error("fail");
+        const data = (await res.json()) as { interacciones: InteraccionDetalle[] };
+        if (!cancelado) {
+          setFilas(data.interacciones.map((fila) => ({ ...fila, dispositivo: fila.dispositivo ?? "" })));
+          setError("");
+        }
+      } catch {
+        if (!cancelado) setError("No se pudieron cargar las interacciones.");
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   return { filas, error };
 }
@@ -123,22 +107,25 @@ export function useCuarentena() {
   const [filas, setFilas] = useState<CuarentenaDetalle[]>([]);
   const [error, setError] = useState("");
 
-  const cargar = useCallback(async () => {
-    try {
-      const res = await fetch("/api/cuarentena", { cache: "no-store" });
-      if (!res.ok) throw new Error("fail");
-      const data = (await res.json()) as { cuarentena: CuarentenaDetalle[] };
-      setFilas(data.cuarentena);
-      setError("");
-    } catch {
-      setError("No se pudo cargar la revisión.");
-    }
-  }, []);
-
   useEffect(() => {
-    void cargar();
-  }, [cargar]);
-  useVersionAgregado(cargar);
+    let cancelado = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/cuarentena?limite=40", { cache: "no-store" });
+        if (!res.ok) throw new Error("fail");
+        const data = (await res.json()) as { cuarentena: CuarentenaDetalle[] };
+        if (!cancelado) {
+          setFilas(data.cuarentena);
+          setError("");
+        }
+      } catch {
+        if (!cancelado) setError("No se pudo cargar la revisión.");
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   return { filas, error };
 }

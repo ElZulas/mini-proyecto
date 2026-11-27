@@ -17,12 +17,15 @@ function texto(valor: unknown): string | null {
   return typeof valor === "string" && valor.trim() ? valor : null;
 }
 
+/** Muestra acotada: no leer los 793 de cuarentena en cada visita. */
 export async function GET(request: NextRequest) {
   const sesion = await exigirSesion(request);
   if (esError(sesion)) return sesion;
 
   try {
-    const consulta = await adminDb().collection("cuarentena").get();
+    const limitePedido = Number(request.nextUrl.searchParams.get("limite") ?? "40");
+    const limite = Number.isInteger(limitePedido) && limitePedido > 0 ? Math.min(limitePedido, 80) : 40;
+    const consulta = await adminDb().collection("cuarentena").limit(limite).get();
     const filas = consulta.docs.map((doc) => {
       const fila = doc.data();
       return {
@@ -36,7 +39,7 @@ export async function GET(request: NextRequest) {
         texto: texto(fila.texto),
       };
     });
-    return NextResponse.json({ total: filas.length, cuarentena: filas });
+    return NextResponse.json({ total: filas.length, limite, cuarentena: filas });
   } catch (error) {
     console.error(error);
     return jsonError(500, "No se pudo listar la cuarentena.");

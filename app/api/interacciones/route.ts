@@ -39,17 +39,17 @@ export async function GET(request: NextRequest) {
     const canal = parametros.get("canal");
     const tipo = parametros.get("tipo");
     const tema = parametros.get("tema");
-    const limitePedido = Number(parametros.get("limite") ?? "50");
-    const limite = Number.isInteger(limitePedido) && limitePedido > 0 ? Math.min(limitePedido, 500) : 50;
-    const consulta = await adminDb().collection("interacciones").get();
-    const filas = consulta.docs
+    const limitePedido = Number(parametros.get("limite") ?? "40");
+    const limite = Number.isInteger(limitePedido) && limitePedido > 0 ? Math.min(limitePedido, 80) : 40;
+    // Solo .limit(): evita índices compuestos y no cobra la colección entera.
+    const snap = await adminDb().collection("interacciones").limit(limite).get();
+    const filas = snap.docs
       .map((doc) => serializar(doc.id, doc.data()))
       .filter((fila) => (canal ? fila.canal === canal : true))
       .filter((fila) => (tipo ? fila.tipo === tipo : true))
       .filter((fila) => (tema ? fila.tema === tema : true))
-      .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))
-      .slice(0, limite);
-    return NextResponse.json({ total: filas.length, interacciones: filas });
+      .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
+    return NextResponse.json({ total: filas.length, limite, interacciones: filas });
   } catch (error) {
     console.error(error);
     return jsonError(500, "No se pudo consultar interacciones.");

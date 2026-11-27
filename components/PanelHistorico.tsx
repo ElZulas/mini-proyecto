@@ -18,8 +18,8 @@ async function fetcher(url: string): Promise<{ estado: number; datos: Analitica 
 export default function PanelHistorico() {
   const { oscuro } = useTema();
   const { data, error, isValidating, mutate } = useSWR("/api/analitica", fetcher, {
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
     shouldRetryOnError: false,
   });
   const tarjeta = oscuro ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-white shadow-sm";

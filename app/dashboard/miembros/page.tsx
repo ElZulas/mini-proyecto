@@ -25,13 +25,13 @@ function Contenido() {
   return (
     <SeccionShell
       titulo="Miembros"
-      descripcion="Padrón completo de la comunidad: intereses, plataforma, actividad reciente y estatus de participación."
+      descripcion="Muestra del padrón (hasta 40 filas) para no saturar lecturas. Los totales globales están en el panel principal."
     >
       {error ? <p className="mb-4 text-sm text-rose-400">{error}</p> : null}
       <ResumenCifras
         items={[
-          { etiqueta: "Total", valor: String(filas.length) },
-          { etiqueta: "Artistas", valor: String(filas.filter((f) => f.es_artista).length) },
+          { etiqueta: "En esta vista", valor: String(filas.length) },
+          { etiqueta: "Artistas (vista)", valor: String(filas.filter((f) => f.es_artista).length) },
           { etiqueta: "Interés top", valor: porInteres[0] ? etiquetaLegible(porInteres[0].clave) : "—" },
         ]}
       />

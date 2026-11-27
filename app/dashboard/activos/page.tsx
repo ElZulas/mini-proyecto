@@ -16,9 +16,8 @@ export default function PaginaActivos() {
 }
 
 function Contenido() {
-  const { filas, error } = useUsuarios();
+  const { filas: activos, error } = useUsuarios({ estatus: "activo" });
   const { oscuro } = useTema();
-  const activos = filas.filter((fila) => fila.estatus === "activo");
 
   return (
     <SeccionShell

@@ -16,9 +16,8 @@ export default function PaginaInactivos() {
 }
 
 function Contenido() {
-  const { filas, error } = useUsuarios();
+  const { filas: inactivos, error } = useUsuarios({ estatus: "inactivo" });
   const { oscuro } = useTema();
-  const inactivos = filas.filter((fila) => fila.estatus === "inactivo");
 
   return (
     <SeccionShell

@@ -17,9 +17,8 @@ export default function PaginaRiesgo() {
 }
 
 function Contenido() {
-  const { filas, error } = useUsuarios();
+  const { filas: enRiesgo, error } = useUsuarios({ estatus: "en_riesgo" });
   const { oscuro } = useTema();
-  const enRiesgo = filas.filter((fila) => fila.estatus === "en_riesgo");
   const tasa = tasaRiesgo(enRiesgo.length, filas.length);
 
   return (
