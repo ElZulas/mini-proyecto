@@ -58,14 +58,13 @@ export default function PanelVivo() {
     router.replace("/login");
   }
 
-  // 1 doc onSnapshot (agregados/panel) — no 2000 lecturas por visita.
+  // Verde si el agregado ya trae datos (aunque el socket de Vercel no exista).
+  const enVivo = firestoreVivo || panel.usuarios > 0;
   const colorOk = "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]";
-  const colorDatos = firestoreVivo ? colorOk : "bg-zinc-500";
-  const colorVivo = firestoreVivo ? colorOk : "bg-amber-400";
-  const etiquetaVivo = firestoreVivo
-    ? canal.estado === "conectado"
-      ? "Actualizaciones en vivo (agregado + WebSocket)"
-      : "Actualizaciones en vivo (agregado Firestore)"
+  const colorDatos = enVivo ? colorOk : "bg-zinc-500";
+  const colorVivo = enVivo ? colorOk : "bg-amber-400";
+  const etiquetaVivo = enVivo
+    ? "Actualizaciones en vivo (Firestore)"
     : "Conectando con Firestore…";
   return (
     <main
@@ -94,8 +93,8 @@ export default function PanelVivo() {
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <span
-            title={firestoreVivo ? "Datos sincronizados" : "Sin conexión a los datos"}
-            aria-label={firestoreVivo ? "Datos sincronizados" : "Sin conexión a los datos"}
+            title={enVivo ? "Datos sincronizados" : "Sin conexión a los datos"}
+            aria-label={enVivo ? "Datos sincronizados" : "Sin conexión a los datos"}
             className={`h-2.5 w-2.5 rounded-full ${colorDatos}`}
           />
           <span title={etiquetaVivo} aria-label={etiquetaVivo} className={`h-2.5 w-2.5 rounded-full ${colorVivo}`} />
@@ -285,7 +284,7 @@ export default function PanelVivo() {
         </div>
       </section>
 
-      <FeedTiempoReal estado={canal.estado} eventos={canal.eventos} firestoreVivo={firestoreVivo} />
+      <FeedTiempoReal estado={canal.estado} eventos={canal.eventos} firestoreVivo={enVivo} />
       <PanelHistorico />
 
       <footer className={`mt-10 border-t pt-4 text-xs ${oscuro ? "border-white/10" : "border-zinc-200"} ${muted}`}>
